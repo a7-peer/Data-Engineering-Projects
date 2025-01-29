@@ -1,0 +1,137 @@
+-- Creating passenger_count_dim
+CREATE OR REPLACE TABLE `taxi-dep.data_modeling_taxi_dataset.passenger_count_dim` AS
+SELECT
+    passenger_count,
+    ROW_NUMBER() OVER (ORDER BY passenger_count) AS passenger_count_id
+FROM
+    `taxi-dep.taxi_dataset.taxi_table_with_trip_id`
+GROUP BY
+    passenger_count;
+
+-- Creating trip_distance_dim
+CREATE OR REPLACE TABLE `taxi-dep.data_modeling_taxi_dataset.trip_distance_dim` AS
+SELECT
+    trip_distance,
+    ROW_NUMBER() OVER (ORDER BY trip_distance) AS trip_distance_id
+FROM
+    `taxi-dep.taxi_dataset.taxi_table_with_trip_id`
+GROUP BY
+    trip_distance;
+
+-- Creating rate_code_dim
+CREATE OR REPLACE TABLE `taxi-dep.data_modeling_taxi_dataset.rate_code_dim` AS
+SELECT
+    RatecodeID,
+    CASE
+        WHEN RatecodeID = 1 THEN "Standard rate"
+        WHEN RatecodeID = 2 THEN "JFK"
+        WHEN RatecodeID = 3 THEN "Newark"
+        WHEN RatecodeID = 4 THEN "Nassau or Westchester"
+        WHEN RatecodeID = 5 THEN "Negotiated fare"
+        WHEN RatecodeID = 6 THEN "Group ride"
+        ELSE "Unknown"
+    END AS rate_code_name,
+    ROW_NUMBER() OVER (ORDER BY RatecodeID) AS rate_code_id
+FROM
+    `taxi-dep.taxi_dataset.taxi_table_with_trip_id`
+GROUP BY
+    RatecodeID;
+
+-- Creating pickup_location_dim
+CREATE OR REPLACE TABLE `taxi-dep.data_modeling_taxi_dataset.pickup_location_dim` AS
+SELECT
+    pickup_latitude,
+    pickup_longitude,
+    ROW_NUMBER() OVER (ORDER BY pickup_latitude, pickup_longitude) AS pickup_location_id
+FROM
+    `taxi-dep.taxi_dataset.taxi_table_with_trip_id`
+GROUP BY
+    pickup_latitude,
+    pickup_longitude;
+
+-- Creating dropoff_location_dim
+CREATE OR REPLACE TABLE `taxi-dep.data_modeling_taxi_dataset.dropoff_location_dim` AS
+SELECT
+    dropoff_latitude,
+    dropoff_longitude,
+    ROW_NUMBER() OVER (ORDER BY dropoff_latitude, dropoff_longitude) AS dropoff_location_id
+FROM
+    `taxi-dep.taxi_dataset.taxi_table_with_trip_id`
+GROUP BY
+    dropoff_latitude,
+    dropoff_longitude;
+
+-- Creating payment_type_dim
+CREATE OR REPLACE TABLE `taxi-dep.data_modeling_taxi_dataset.payment_type_dim` AS
+SELECT
+    payment_type,
+    CASE
+        WHEN payment_type = 1 THEN "Credit card"
+        WHEN payment_type = 2 THEN "Cash"
+        WHEN payment_type = 3 THEN "No charge"
+        WHEN payment_type = 4 THEN "Dispute"
+        WHEN payment_type = 5 THEN "Unknown"
+        WHEN payment_type = 6 THEN "Voided trip"
+        ELSE "Unknown"
+    END AS payment_type_name,
+    ROW_NUMBER() OVER (ORDER BY payment_type) AS payment_type_id
+FROM
+    `taxi-dep.taxi_dataset.taxi_table_with_trip_id`
+GROUP BY
+    payment_type;
+
+-- Creating datetime_dim
+CREATE OR REPLACE TABLE `taxi-dep.data_modeling_taxi_dataset.datetime_dim` AS
+SELECT
+    tpep_pickup_datetime,
+    EXTRACT(HOUR FROM tpep_pickup_datetime) AS pick_hour,
+    EXTRACT(DAY FROM tpep_pickup_datetime) AS pick_day,
+    EXTRACT(MONTH FROM tpep_pickup_datetime) AS pick_month,
+    EXTRACT(YEAR FROM tpep_pickup_datetime) AS pick_year,
+    EXTRACT(DAYOFWEEK FROM tpep_pickup_datetime) AS pick_weekday,
+    tpep_dropoff_datetime,
+    EXTRACT(HOUR FROM tpep_dropoff_datetime) AS drop_hour,
+    EXTRACT(DAY FROM tpep_dropoff_datetime) AS drop_day,
+    EXTRACT(MONTH FROM tpep_dropoff_datetime) AS drop_month,
+    EXTRACT(YEAR FROM tpep_dropoff_datetime) AS drop_year,
+    EXTRACT(DAYOFWEEK FROM tpep_dropoff_datetime) AS drop_weekday,
+    ROW_NUMBER() OVER (ORDER BY tpep_pickup_datetime) AS datetime_id
+FROM
+    `taxi-dep.taxi_dataset.taxi_table_with_trip_id`;
+
+-- Creating fact table
+CREATE OR REPLACE TABLE `taxi-dep.data_modeling_taxi_dataset.fact_table` AS
+SELECT
+    t.trip_id,
+    t.VendorID,
+    d.datetime_id,
+    pc.passenger_count_id,
+    td.trip_distance_id,
+    rc.rate_code_id,
+    t.store_and_fwd_flag,
+    pu.pickup_location_id,
+    do.dropoff_location_id,
+    pt.payment_type_id,
+    t.fare_amount,
+    t.extra,
+    t.mta_tax,
+    t.tip_amount,
+    t.tolls_amount,
+    t.improvement_surcharge,
+    t.total_amount
+FROM
+    `taxi-dep.taxi_dataset.taxi_table_with_trip_id` t
+JOIN
+    `taxi-dep.data_modeling_taxi_dataset.datetime_dim` d ON t.tpep_pickup_datetime = d.tpep_pickup_datetime
+JOIN
+    `taxi-dep.data_modeling_taxi_dataset.passenger_count_dim` pc ON t.passenger_count = pc.passenger_count
+JOIN
+    `taxi-dep.data_modeling_taxi_dataset.trip_distance_dim` td ON t.trip_distance = td.trip_distance
+JOIN
+    `taxi-dep.data_modeling_taxi_dataset.rate_code_dim` rc ON t.RatecodeID = rc.RatecodeID
+JOIN
+    `taxi-dep.data_modeling_taxi_dataset.pickup_location_dim` pu ON t.pickup_latitude = pu.pickup_latitude AND t.pickup_longitude = pu.pickup_longitude
+JOIN
+    `taxi-dep.data_modeling_taxi_dataset.dropoff_location_dim` do ON t.dropoff_latitude = do.dropoff_latitude AND t.dropoff_longitude = do.dropoff_longitude
+JOIN
+    `taxi-dep.data_modeling_taxi_dataset.payment_type_dim` pt ON t.payment_type = pt.payment_type;
