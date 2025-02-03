@@ -1,11 +1,7 @@
 import csv
 import random
-from faker import Faker
 from datetime import datetime, timedelta
 from google.cloud import storage
-
-# Initialize Faker
-data_generator = Faker()
 
 # Number of rows to generate
 num_rows = 1000
