@@ -1,0 +1,321 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[42]:
+
+
+# Importing all the Required Libraries
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.impute import SimpleImputer
+import plotly.express as px
+#using ploty for visualization 
+
+
+# In[43]:
+
+
+#reading the data using pandas   dataframe
+data = pd.read_csv('life_expectancy.csv')
+data
+
+
+# In[44]:
+
+
+#checking the colums
+data.columns
+
+
+# In[45]:
+
+
+#print number of rows and columns in the dataset
+
+print("Number of Rows:",data.shape[0])
+print("Number of Features:",data.shape[1])
+
+
+# In[46]:
+
+
+# getting idea about the data and types
+data.info()
+
+
+# In[47]:
+
+
+#Statistical Info for Numerical Features
+data.describe().T
+
+
+# In[48]:
+
+
+# we have  mostly numerical data type including year, alcohol , etc and categorical including country and status
+#Exploring some of categorical features
+data['Country'].value_counts()
+
+
+# In[49]:
+
+
+# The number of devloped and developing countries
+data['Status'].value_counts()
+
+
+# In[50]:
+
+
+# Handling missing values
+#calucating the missing values using isnull and sum function
+data.isnull().sum()
+
+
+# In[51]:
+
+
+#As the number of Missing Values is large I will use Imputing Method to fill null values with mean Value
+#from sklearn module i already imported SimpleImputer(i used chatgpt for this)
+imputer = SimpleImputer(missing_values=np.nan, strategy='mean', fill_value=None)
+
+data['Life expectancy ']=imputer.fit_transform(data[['Life expectancy ']])
+data['Adult Mortality']=imputer.fit_transform(data[['Adult Mortality']])
+data['Alcohol']=imputer.fit_transform(data[['Alcohol']])
+data['Hepatitis B']=imputer.fit_transform(data[['Hepatitis B']])
+data[' BMI ']=imputer.fit_transform(data[[' BMI ']])
+data['Polio']=imputer.fit_transform(data[['Polio']])
+data['Total expenditure']=imputer.fit_transform(data[['Total expenditure']])
+data['Diphtheria ']=imputer.fit_transform(data[['Diphtheria ']])
+data['GDP']=imputer.fit_transform(data[['GDP']])
+data['Population']=imputer.fit_transform(data[['Population']])
+data[' thinness  1-19 years']=imputer.fit_transform(data[[' thinness  1-19 years']])
+data[' thinness 5-9 years']=imputer.fit_transform(data[[' thinness 5-9 years']])
+data['Income composition of resources']=imputer.fit_transform(data[['Income composition of resources']])
+data['Schooling']=imputer.fit_transform(data[['Schooling']])
+
+
+# In[52]:
+
+
+#rechecking
+data.isnull().sum()
+
+
+# In[53]:
+
+
+data.columns
+
+
+# In[54]:
+
+
+# Loop through each column and create a box plot
+for column in data.columns:
+#     print(column)
+    if column in ['Life expectancy ', 'Adult Mortality', 'Alcohol', ' BMI ','Total expenditure','Schooling']:
+        fig = px.box(data, y=column, title=f'Box Plot for {column}')
+
+        # Update layout to center the title and make it bold
+        fig.update_layout(
+            title=dict(text=f'<b>Box Plot for {column}</b>', x=0.5),
+            boxmode='group'  
+        )
+
+        fig.show()
+
+
+# In[55]:
+
+
+#using plotly draw line plot to show the trend of life expectancy over the years
+fig = px.line(data.sort_values(by='Year'), x='Year', y='Life expectancy ',animation_frame='Country',animation_group='Year',color='Country', title='Trend of Life Expectancy Over the Years')
+
+#update layout to center the title and make it bold
+fig.update_layout(
+    title=dict(text='<b>Trend of Life Expectancy Over the Years</b>', x=0.5)
+)
+
+fig.show()
+
+
+# In[56]:
+
+
+#using plotly draw count plot for data['Status'] and color each bar with different color
+fig = px.histogram(data, x='Status', color='Status', title='Count Plot for Status of Country')
+
+#update layout to center the title and make it bold
+fig.update_layout(
+    title=dict(text='<b>Count Plot for Status of Country</b>', x=0.5)
+)
+
+fig.show()
+
+
+# In[57]:
+
+
+#looking the ranges of life expectany of developing countries
+# Filter DataFrame for 'Developing' status
+developing_data = data[data['Status'] == 'Developing']
+
+# Create a histogram 
+fig = px.histogram(developing_data, x='Life expectancy ', title="Life Expectancy of Developing Nations")
+fig.update_layout(
+    xaxis_title='',
+    yaxis_title='Count of Ages',
+    title_text='<b>Life Expectancy of Developing Countries</b>',
+    title_x=0.5,  # Center title
+)
+fig.show()
+
+
+# In[58]:
+
+
+#We can say the range is from like 41 to 90 in Developing Countries
+
+
+# In[59]:
+
+
+#Now for developed countries
+# Filter DataFrame for 'Developing' status
+developing_data = data[data['Status'] == 'Developed']
+
+# Create a histogram 
+fig = px.histogram(developing_data, x='Life expectancy ', title="Life Expectancy of Developing Nations")
+fig.update_layout(
+    xaxis_title='',
+    yaxis_title='Count of Ages',
+    title_text='<b>Life Expectancy of Developed Countries</b>',
+    title_x=0.5,  # Center title
+)
+fig.show()
+
+
+# In[60]:
+
+
+#We can say the range is from like 70 to 90 in Developed Countries which means it is greater in developed countries
+
+
+# In[61]:
+
+
+#using plotly to visualize Average Adult Mortality of Developing and Developed Countries
+fig = px.bar(data.groupby('Status', as_index=False).agg({'Adult Mortality':'mean'}), 
+             x='Status', 
+             y='Adult Mortality', 
+             color='Status',
+             title='Average Adult Mortality of Developing and Developed Countries')
+
+# Update layout to center the title
+fig.update_layout(title_text='<b>Average Adult Mortality of Developing and Developed Countries</b>', title_x=0.5)
+
+# Show the plot
+fig.show()  
+
+
+# In[62]:
+
+
+#using plotly to visualize Average Infant deaths of Developing and Developed Countries
+fig = px.bar(data.groupby('Status', as_index=False).agg({'infant deaths':'mean'}), 
+             x='Status', 
+             y='infant deaths', 
+             color='Status',
+             title='Average Infant deaths of Developing and Developed Countries')
+
+# Update layout to center the title
+fig.update_layout(title_text='<b>Average Infant deaths of Developing and Developed Countries</b>', title_x=0.5)
+
+# Show the plot
+fig.show()  
+
+
+# In[63]:
+
+
+#Developing Countries have highest Adult Mortality and Infant deaths
+
+
+# In[64]:
+
+
+#using plotly to visualize Average Alcohol consumption of Developing and Developed Countries
+fig = px.bar(data.groupby('Status', as_index=False).agg({'Alcohol':'mean'}), 
+             x='Status', 
+             y='Alcohol', 
+             color='Status',
+             title='Average Alcohol consumption of Developing and Developed Countries')
+
+# Update layout to center the title
+fig.update_layout(title_text='<b>Average Alcohol consumption of Developing and Developed Countries</b>', title_x=0.5)
+
+# Show the plot
+fig.show()
+
+
+# In[65]:
+
+
+#using plotly to visualize scatter ploy of Life expectancy vs Adult Mortality for countries over years
+fig = px.scatter(data.sort_values(by='Year'), x='Life expectancy ', y='Adult Mortality',color='Country', size='Year', title='Life expectancy vs Adult Mortality for Countries over Years')
+
+# Update layout to center the title
+fig.update_layout(title_text='<b>Life expectancy vs Adult Mortality for Countries over Years</b>', title_x=0.5)
+
+# Show the plot
+fig.show()
+
+
+# In[66]:
+
+
+#using plotly to visualize scatter ploy of Life expectancy vs Infant deaths for Countries over Years
+fig = px.scatter(data.sort_values(by='Year'), x='Life expectancy ', y='infant deaths',color='Country', size='Year', title='Life expectancy vs Infant deaths for Countries over Years')
+
+# Update layout to center the title
+fig.update_layout(title_text='<b>Life expectancy vs Infant deaths for Countries over Years</b>', title_x=0.5)
+
+# Show the plot
+fig.show()
+
+
+# In[67]:
+
+
+# Select numeric columns
+numeric_columns = data.select_dtypes(include=['int64', 'float64']).columns
+
+# Create a correlation matrix for selected numeric columns
+correlation_matrix = data[numeric_columns].corr()
+
+# Plot heatmap using Plotly Express
+fig = px.imshow(correlation_matrix,
+                labels=dict(x='Columns', y='Columns', color='Correlation'),
+                x=correlation_matrix.columns,
+                y=correlation_matrix.columns,
+                color_continuous_scale='blues',
+                title='Heatmap: Correlation Matrix of Numeric Columns')
+
+# Update layout
+fig.update_layout(title_text='<b>Heatmap: Correlation Matrix of Numeric Columns</b>', 
+                  title_x=0.5, 
+                  width=1200, 
+                  height=1200)
+
+# Show the plot
+fig.show()
+
+
+# In[ ]:
+
+
+
+
